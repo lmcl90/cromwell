@@ -2,8 +2,7 @@
 *~
 .DS_Store
 .artifactory
-.idea/*
-**/.idea/*
+.idea
 .ensime_cache/*
 .config/*
 .local/*

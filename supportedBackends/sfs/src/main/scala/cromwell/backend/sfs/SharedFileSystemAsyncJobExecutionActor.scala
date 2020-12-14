@@ -17,6 +17,7 @@ import scala.util.{Failure, Success, Try}
 
 sealed trait SharedFileSystemRunState {
   def status: String
+
   def terminal: Boolean
 
   override def toString: String = status
@@ -24,6 +25,7 @@ sealed trait SharedFileSystemRunState {
 
 case class SharedFileSystemJobRunning(validUntil: Option[Instant]) extends SharedFileSystemRunState {
   override def terminal: Boolean = false
+
   override def status = "Running"
 
   // Whether this running state is stale (ie has the 'validUntil' time passed?)
@@ -32,6 +34,7 @@ case class SharedFileSystemJobRunning(validUntil: Option[Instant]) extends Share
 
 case class SharedFileSystemJobWaitingForReturnCode(waitUntil: Option[Instant]) extends SharedFileSystemRunState {
   override def terminal: Boolean = false
+
   override def status = "WaitingForReturnCode"
 
   // Whether or not to give up waiting for the RC to appear (ie has the 'waitUntil' time passed?)
@@ -40,10 +43,13 @@ case class SharedFileSystemJobWaitingForReturnCode(waitUntil: Option[Instant]) e
 
 case object SharedFileSystemJobDone extends SharedFileSystemRunState {
   override def terminal: Boolean = true
+
   override def status = "Done"
 }
+
 case object SharedFileSystemJobFailed extends SharedFileSystemRunState {
   override def terminal: Boolean = true
+
   override def status = "Failed"
 }
 
@@ -129,7 +135,11 @@ trait SharedFileSystemAsyncJobExecutionActor
 
   lazy val jobPathsWithDocker: JobPathsWithDocker = jobPaths.asInstanceOf[JobPathsWithDocker]
 
-  def jobName: String = s"cromwell_${jobDescriptor.workflowDescriptor.id.shortString}_${jobDescriptor.taskCall.localName}"
+  /**
+    * Return the cromwell job name which also obeys k8s object naming rule
+    * @return
+    */
+  def jobName: String = s"cromwell-${jobDescriptor.workflowDescriptor.id.shortString}-${jobDescriptor.taskCall.localName.toLowerCase.replace("_", "-")}"
 
   /**
     * Localizes the file, run outside of docker.
@@ -167,16 +177,17 @@ trait SharedFileSystemAsyncJobExecutionActor
           val runningJob = getJob(exitValue, runner.stdoutPath, runner.stderrPath)
           PendingExecutionHandle(jobDescriptor, runningJob, None, None)
         }
-    }
+      }
     )
   }
 
   def writeScriptContents(): Either[ExecutionHandle, Unit] =
     commandScriptContents.fold(
       errors => Left(FailedNonRetryableExecutionHandle(new RuntimeException("Unable to start job due to: " + errors.toList.mkString(", ")), kvPairsToSave = None)),
-      {script => jobPaths.script.write(script); Right(())} )
+      { script => jobPaths.script.write(script); Right(()) })
 
   lazy val standardPaths = jobPaths.standardPaths
+
   /**
     * Creates a script to submit the script for asynchronous processing. The default implementation assumes the
     * processArgs already runs the script asynchronously. If not, mix in the `BackgroundAsyncJobExecutionActor` that
