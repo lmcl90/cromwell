@@ -18,6 +18,7 @@ import cromwell.docker.registryv2.DockerRegistryV2Abstract
 import cromwell.docker.registryv2.flows.dockerhub.DockerHubRegistry
 import cromwell.docker.registryv2.flows.gcr.GcrRegistry
 import cromwell.docker.registryv2.flows.quay.QuayRegistry
+import cromwell.docker.registryv2.flows.harbor.HarborRegistry
 import cromwell.util.GracefulShutdownHelper.ShutdownCommand
 import fs2.Pipe
 import fs2.concurrent.{NoneTerminatedQueue, Queue}
@@ -101,7 +102,7 @@ final class DockerInfoActor(
 
   def enqueue(dockerInfoContext: DockerInfoContext, queue: StreamQueue) = {
     val enqueueIO = queue.offer1(Option(dockerInfoContext)).runAsync {
-      case Right(true) => IO.unit// Good !
+      case Right(true) => IO.unit // Good !
       case _ => backpressure(dockerInfoContext)
     }
 
@@ -165,7 +166,7 @@ final class DockerInfoActor(
   override def preStart() = {
     // Force initialization of the header constants to make sure they're valid
     locally(DockerRegistryV2Abstract)
-    
+
     val registries =
       dockerRegistryFlows.toList
         .parTraverse(startAndRegisterStream)
@@ -193,20 +194,25 @@ object DockerInfoActor {
   }
 
   case class DockerInformation(dockerHash: DockerHashResult, dockerCompressedSize: Option[DockerSize])
+
   case class DockerInfoSuccessResponse(dockerInformation: DockerInformation, request: DockerInfoRequest) extends DockerInfoResponse
 
   sealed trait DockerHashFailureResponse extends DockerInfoResponse {
     def reason: String
   }
+
   case class DockerInfoFailedResponse(failure: Throwable, request: DockerInfoRequest) extends DockerHashFailureResponse {
     override val reason = s"Failed to get docker hash for ${request.dockerImageID.fullName} ${failure.getMessage}"
   }
+
   case class DockerHashUnknownRegistry(request: DockerInfoRequest) extends DockerHashFailureResponse {
     override val reason = s"Registry ${request.dockerImageID.host.getOrElse("<no registry>")} is not supported"
   }
+
   case class DockerInfoNotFound(request: DockerInfoRequest) extends DockerHashFailureResponse {
     override val reason = s"Docker image ${request.dockerImageID.fullName} not found"
   }
+
   case class DockerInfoUnauthorized(request: DockerInfoRequest) extends DockerHashFailureResponse {
     override val reason = s"Unauthorized to get docker hash ${request.dockerImageID.fullName}"
   }
@@ -218,6 +224,7 @@ object DockerInfoActor {
   }
 
   private case class EnqueueResponse(result: QueueOfferResult, dockerInfoContext: DockerInfoContext)
+
   private case class FailedToEnqueue(failure: Throwable, dockerInfoContext: DockerInfoContext)
 
   def props(dockerRegistryFlows: Seq[DockerRegistry],
@@ -240,7 +247,8 @@ object DockerInfoActor {
       ("dockerhub", { c: DockerRegistryConfig => new DockerHubRegistry(c) }),
       ("gcr", gcrConstructor),
       ("quay", { c: DockerRegistryConfig => new QuayRegistry(c) }),
-      ("alibabacloudcr", {c: DockerRegistryConfig => new AlibabaCloudCRRegistry(c)})
+      ("alibabacloudcr", { c: DockerRegistryConfig => new AlibabaCloudCRRegistry(c) }),
+      ("harbor", { c: DockerRegistryConfig => new HarborRegistry(c) })
     ).traverse[ErrorOr, DockerRegistry]({
       case (configPath, constructor) => DockerRegistryConfig.fromConfig(config.as[Config](configPath)).map(constructor)
     }).unsafe("Docker registry configuration")
