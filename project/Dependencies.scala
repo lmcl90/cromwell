@@ -71,6 +71,7 @@ object Dependencies {
   private val jaxbV = "2.3.2" // scala-steward:off
   private val kindProjectorV = "0.9.9"
   private val kittensV = "2.2.0"
+  private val k8sV = "8.0.2"
   private val liquibaseSlf4jV = "4.0.0"
   // Scala Steward wanted to upgrade liquibase-core to 3.10.2 but that version does not find some uniqueness
   // constraints and models datatypes in ways that are incompatible with our test expectations.
@@ -151,7 +152,7 @@ object Dependencies {
     "refined",
     "literal"
   ).map(m => "io.circe" %% s"circe-$m" % circeV) :+ circeYamlDependency :+
-  "io.circe" %% "circe-generic-extras" % circeGenericExtrasV
+    "io.circe" %% "circe-generic-extras" % circeGenericExtrasV
 
   private val catsDependencies = List(
     "org.typelevel" %% "cats-core" % catsV,
@@ -243,9 +244,9 @@ object Dependencies {
 
   private val liquibaseDependencies = List(
     "org.liquibase" % "liquibase-core" % liquibaseV,
-      // The exclusion below will be needed if / when liquibase-core is upgraded to 3.10+
-      // Avert collision with jakarta.xml.bind-api
-      // exclude("javax.xml.bind", "jaxb-api"),
+    // The exclusion below will be needed if / when liquibase-core is upgraded to 3.10+
+    // Avert collision with jakarta.xml.bind-api
+    // exclude("javax.xml.bind", "jaxb-api"),
     // This is to stop liquibase from being so noisy by default
     // See: http://stackoverflow.com/questions/20880783/how-to-get-liquibase-to-log-using-slf4j
     "com.mattbertolini" % "liquibase-slf4j" % liquibaseSlf4jV
@@ -560,8 +561,9 @@ object Dependencies {
 
   val bcsBackendDependencies = commonDependencies ++ refinedTypeDependenciesList ++ aliyunBatchComputeDependencies
   val tesBackendDependencies = akkaHttpDependencies
-  val sfsBackendDependencies = List (
-    "org.lz4" % "lz4-java" % lz4JavaV
+  val sfsBackendDependencies = List(
+    "org.lz4" % "lz4-java" % lz4JavaV,
+    "io.kubernetes" % "client-java" % k8sV,
   )
 
   val testDependencies = List(
