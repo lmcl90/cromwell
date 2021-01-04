@@ -10,7 +10,7 @@ object Merging {
     case PathList(ps@_*) if ps.last == "logback.xml" =>
       MergeStrategy.first
     // AWS SDK v2 configuration files - can be discarded
-    case PathList(ps@_*) if Set("codegen.config" , "service-2.json" , "waiters-2.json" , "customization.config" , "examples-1.json" , "paginators-1.json").contains(ps.last) =>
+    case PathList(ps@_*) if Set("codegen.config", "service-2.json", "waiters-2.json", "customization.config", "examples-1.json", "paginators-1.json").contains(ps.last) =>
       MergeStrategy.discard
     case x@PathList("META-INF", path@_*) =>
       path map {
@@ -22,6 +22,8 @@ object Merging {
           MergeStrategy.first
         case "maven" :: "com.google.guava" :: xs =>
           MergeStrategy.first
+        case xs if xs.nonEmpty && xs.last == "module-info.class" =>
+          MergeStrategy.discard
         case _ =>
           val oldStrategy = (assemblyMergeStrategy in assembly).value
           oldStrategy(x)
@@ -36,6 +38,8 @@ object Merging {
           val oldStrategy = (assemblyMergeStrategy in assembly).value
           oldStrategy(x)
       }
+    case PathList("io", "sundr", _*) =>
+      MergeStrategy.first
     case "asm-license.txt" | "module-info.class" | "overview.html" | "cobertura.properties" =>
       MergeStrategy.discard
     case PathList("mime.types") =>
