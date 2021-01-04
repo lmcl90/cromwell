@@ -1,6 +1,5 @@
 package cromwell.backend.impl.sfs.k8s
 
-import com.sun.tools.corba.se.idl.constExpr.Positive
 import io.kubernetes.client.openapi.ApiException
 import cromwell.backend.BackendJobLifecycleActor
 import cromwell.backend.async.{ExecutionHandle, FailedNonRetryableExecutionHandle, PendingExecutionHandle}
@@ -11,6 +10,7 @@ import cromwell.backend.validation.RuntimeAttributesValidation
 import cromwell.core.path.{DefaultPathBuilder, Path}
 import cromwell.core.retry.SimpleExponentialBackoff
 import eu.timepit.refined.api.Refined
+import eu.timepit.refined.numeric.Positive
 import wom.RuntimeAttributesKeys
 import wom.format.MemorySize
 import wom.values.WomFile
@@ -126,12 +126,10 @@ class K8sAsyncJobExecutionActor(override val standardParams: StandardAsyncExecut
         Try {
           job.delete()
         } match {
-          case Failure(exception: ApiException) => {
+          case Failure(exception: ApiException) =>
             jobLogger.warn(exception.getResponseBody)
-          }
-          case Failure(exception) => {
+          case Failure(exception) =>
             jobLogger.warn(exception.getMessage)
-          }
           case _ => ()
         }
         true
@@ -150,7 +148,7 @@ class K8sAsyncJobExecutionActor(override val standardParams: StandardAsyncExecut
   override def pollStatus(handle: StandardAsyncPendingExecutionHandle): RunStatus = {
     val k8sJob = handle.runInfo.getOrElse(throw new RuntimeException("empty run job info"))
     val status = k8sJob.getStatus
-    jobLogger.debug(s"job: ${k8sJob.name} polled status: ${status}")
+    jobLogger.debug(s"job: ${k8sJob.name} polled status: $status")
     status
   }
 
